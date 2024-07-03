@@ -1,47 +1,103 @@
-## Parsely Business Model 3.23.24
-# If you are an Individual/Small Teams that are looking for the following services:
-1. You have access to all of the exclusive features for $50 per month + token costs given your API key, catered to "RAG over all your uploaded documents", "Excel Tools", "Live Transcriptions and Insights", "Recommendation Bot Deployment", "Phone-Call Booking Agent via Retell.AI" and more below 🤖
-2. You have opportunity to pay an additional $500 per month for a consulting session on a project of your choice (Limited to 1 hours per session, 5 sessions max)
-3. You have opportunity to pay an additional $1500 for a draft 1 working prototype/demo in 1 month, your choices of LLM RAG Tool (ie. such as a feature to automate your database/excel to post automatically)
-4. With the publication of your idea turned to prototype, and with > 200 likes, your project will be suitable for a profit sharing program. (Ironing out details)
+# GovAssist AI Tool
 
-# $20 Subscription:
-1. You have full access to the top three tools: "RAG over all your uploaded documents", "Excel Tools", and "Live Transcriptions and Insights", you can also experiment with the "Recommendation Bot Deployment", "Phone-Call Booking Agent via Retell.AI" on playground, deployment costs $50 per model/pipeline. Requires your OpenAI API key for token costs, rate limit and speed is based on your API Key Tiering.
+GovAssist AI Tool is designed to enhance government service websites by providing an AI-driven chatbot for citizen inquiries. The tool supports PDF upload, chat functionalities, and web scraping data to assist citizens with tasks such as renewing driver's licenses and completing baby registration action items.
 
-# Free Tier:
-1. You have limited access to top three tools: "RAG over all your uploaded documents", "Excel Tools", and "Live Transcriptions and Insights". Requires your OpenAI API key for token costs, rate limit and speed is based on your API Key Tiering.
+## Features
 
-# rag-a-thon with Llama-Index
+- **PDF Upload and Chat**: Allows users to upload PDFs and interact with the chatbot to extract and summarize information.
+- **Web Scraping**: Extracts relevant data from specified web pages to provide up-to-date information.
+- **Local Data Processing**: Ensures all data is processed and stored locally within the Kingdom of Saudi Arabia, with data deletion after user sessions.
+- **Language Support**: Fully supports Arabic language for all functionalities.
 
-2.6.24 Update:
+## Deliverables
 
-Parsely supports 20+ file types, easily answering multiple questions over a wide diversity of file contents accurately. 
+1. A functional demo with PDF upload and chat functionalities.
+2. Web scraping functionality for relevant data.
+3. Framework and documentation for switching from OpenAI to a local open-source LLM for production usage.
+4. Documentation on usage and backend architecture, including a high-level tutorial.
 
-Data is stored in two ways: 
-(1) User session based, which uses the session state to store all data. (Finished) 
-(2) User database based, which uses Cloud Vector DBs to help customers deploy their personal product recommendation and booking agency and personal smart data retrieval vault. (WIP)
+## Infrastructure
 
-Looking for Cloud VDB's credit sponsorships: The credits will be used to help host the alpha test users' data for a feature called BYOB. A unique link will be generated using the user's cloud api key and collection name to allow the test user to deploy their shop sales consultant and booking agent using their product database and business document.
+All infrastructure is built and maintained locally within the Kingdom of Saudi Arabia to comply with data storage and deletion requirements.
 
-People are likely going to want to have control over which database they want to use (ie Qdrant vs Vectara vs Astra vs so many others) so that they own their own contents. Parsely make professionals who don't know how to code to have a leverage over people who could code their own personal assistance over all of their data. - Plus, they get to save their money on hundred thousands/millions of dollars over their own tech teams for the less "important agenda" projects when it comes to data transformation and retrieval and augmentation.
+## Getting Started
 
-So far, our use cases have saved at least $12k to $50k per project, for 4 different projects. The cost was trivial in comparison, less than $200 cost throughout a three months scope. 
+### Prerequisites
 
- 
-Use Cases Explored:
-1. All Files Async Parallelized Processing
-2. Our own querying method that involved sparse dense retrieval + parallel request merge responses + instructor pydantic class usage for raw text data transformation and transmission
-3. Llama_index llama parser
-4. Vectara Query
-5. APIs deployed for fast and accurate parsing for SUPPORTED_EXTENSIONS =
-[
-    ".docx", ".doc", ".odt", ".pptx", ".ppt", ".xlsx", ".csv", ".tsv", ".eml", ".msg",
-    ".rtf", ".epub", ".html", ".xml", ".pdf", ".png", ".jpg", ".jpeg", ".txt"
-]
+- Python 3.8 or higher
+- Streamlit
+- BeautifulSoup
+- Requests
+- Other dependencies as listed in `requirements.txt`
 
-It works well for travel itinerary retrieva, meeting note retrieval, customer solution and product recommendation
-The speed is faster than that of llama parser when scaled to dozens and hundreds of documents while maintaining precision in responses
-Only key issue is complex table, which llama parser integration helped to ease on when the llama parser recursive retrieval result is integrated along with the input prompt.
+### Installation
 
-Vectara integration was consuing at first with the three IDs, but eventually figured out.
-BentoML integration was under going deployment, easy to use, love the interface.
+1. Clone the repository:
+    ```sh
+    git clone https://github.com/yourusername/govassist-ai-tool.git
+    ```
+
+2. Change to the project directory:
+    ```sh
+    cd govassist-ai-tool
+    ```
+
+3. Create a virtual environment and activate it:
+    ```sh
+    python -m venv venv
+    source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
+    ```
+
+4. Install the required packages:
+    ```sh
+    pip install -r requirements.txt
+    ```
+
+### Running the Application
+
+1. Run the Streamlit application:
+    ```sh
+    streamlit run app.py
+    ```
+
+2. Open your web browser and navigate to the URL provided by Streamlit, typically `http://localhost:8501`.
+
+### Usage
+
+1. Enter the URL to extract links from in the text input box.
+2. Select the URLs you want to process from the multi-select dropdown.
+3. View and process the selected HTML files.
+
+## Documentation
+
+### Objective
+
+The GovAssist AI Tool is designed to enhance government service websites by providing an AI-driven chatbot for citizen inquiries. It supports PDF upload, chat functionalities, and web scraping data.
+
+### Key Features
+
+- PDF Upload and Chat: Allows users to upload PDFs and interact with the chatbot to extract and summarize information.
+- Web Scraping: Extracts relevant data from specified web pages to provide up-to-date information.
+- Local Data Processing: Ensures all data is processed and stored locally within the Kingdom of Saudi Arabia, with data deletion after user sessions.
+- Language Support: Fully supports Arabic language for all functionalities.
+
+### Examples and Tutorials
+
+#### Example 1: GovAssist AI Tool in Action
+This is a video demonstration of the GovAssist AI Tool in action. The tool allows you to extract text from images, PDFs, and Excel files. It also enables users to interact with the chatbot for summarization and translation.
+
+[Video Placeholder]
+
+If you have any questions, feel free to reach out to us at [contact email here].
+
+## Contributing
+
+Contributions are welcome! Please read the [contributing guidelines](CONTRIBUTING.md) first.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Contact
+
+If you have any questions or suggestions, feel free to reach out to us at [contact email here].
