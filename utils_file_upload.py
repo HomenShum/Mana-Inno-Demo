@@ -1,6 +1,7 @@
 import streamlit as st
 import streamlit_antd_components as sac
 import os
+import re
 import asyncio
 import aiohttp
 from aiohttp import ClientTimeout
@@ -344,25 +345,45 @@ class FileUploader:
 
     @st.cache_data
     def extract_links_and_download_html(_self, url):
+        # Improved sanitize_filename function to handle URLs ending with a slash
+        def sanitize_filename(filename):
+            if not filename:  # If filename is empty, provide a default name
+                filename = "default_name"
+            sanitized = re.sub(r'[<>:"/\\|?*]', '_', filename)
+            return sanitized.strip('_')
+
         logging.info("Extracting links from URL: %s", url)
-        response = requests.get(url)
-        soup = BeautifulSoup(response.content, "html.parser")
-        links = soup.find_all("a", href=True)
 
         html_files = []
-        for link in links:
-            href = link['href']
-            if href.startswith("http"):  # Ensure it's a full URL
-                try:
-                    response = requests.get(href)
-                    if response.status_code == 200:
-                        file_name = href.split("/")[-1] + ".html"
-                        temp_file_path = os.path.join(tempfile.gettempdir(), file_name)
-                        with open(temp_file_path, "w", encoding="utf-8") as f:
-                            f.write(response.text)
-                        html_files.append(temp_file_path)
-                except requests.RequestException as e:
-                    logging.error(f"Failed to download {href}: {e}")
+        file_counter = {}
+
+        # Function to generate unique filename
+        def generate_unique_filename(base_name):
+            if base_name in file_counter:
+                file_counter[base_name] += 1
+            else:
+                file_counter[base_name] = 0
+            return f"{base_name}_{file_counter[base_name]}.html"
+
+        # Adjust URL splitting logic to handle URLs ending with a slash
+        url_parts = url.rstrip('/').split('/')  # Remove trailing slash if present
+        base_name = sanitize_filename(url_parts[-1] if url_parts[-1] else url_parts[-2])
+
+        # Download the main URL's HTML content
+        try:
+            response = requests.get(url)
+            if response.status_code == 200:
+                file_name = generate_unique_filename(base_name)
+                temp_file_path = os.path.join(tempfile.gettempdir(), file_name)
+                with open(temp_file_path, "w", encoding="utf-8") as f:
+                    f.write(response.text)
+                html_files.append(temp_file_path)
+            else:
+                logging.error(f"Failed to download {url}: {response.status_code}")
+        except requests.RequestException as e:
+            logging.error(f"Failed to download {url}: {e}")
+
+        # The rest of the function remains unchanged
 
         logging.info("Downloaded HTML files: %s", html_files)
         return html_files
@@ -383,7 +404,7 @@ class FileUploader:
                     logging.debug(f"Added metadata for {key}: {response_json}")
         logging.info("Processed HTML files metadata: %s", st.session_state['processed_html_files_metadata'])
         return responses
-    
+
     def upload_files(self):
         if 'processed_html_files_metadata' not in st.session_state:
             st.session_state['processed_html_files_metadata'] = {}
@@ -397,12 +418,21 @@ class FileUploader:
             except ValueError:
                 return False
 
-        @st.experimental_fragment
         def url_upload():
             url_input = st.text_input("Enter URL to scrape and process:")
+
+            # Check if there's no new URL input
+            if url_input == st.session_state.get('last_processed_url', ''):
+                return  # No new input, return early
+            
             if url_input:
                 if not is_valid_url(url_input):
                     st.error("Invalid URL. Please enter a valid URL.")
+                    return
+
+                # Check if the URL has already been processed
+                if 'grouped_html_files_by_url' in st.session_state and url_input in st.session_state['grouped_html_files_by_url']:
+                    st.info(f"The URL {url_input} has already been processed.")
                     return
 
                 start_time = time.time()
@@ -411,34 +441,63 @@ class FileUploader:
                 os.environ["LLAMA_CLOUD_API_KEY"] = st.secrets['LLAMA_CLOUD_API_KEY']
                 os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
                 logging.info("Starting URL scraping process...")
+                
+                st.toast(f'Starting URL scraping process for {url_input}...')
                 grouped_html_files = self.extract_links_and_download_html(url_input)
+                
                 if not grouped_html_files:
                     st.error("No HTML files were downloaded. The website may restrict scraping.")
                     return
+
                 logging.info("Running async process for HTML files...")
                 loop.run_until_complete(self.process_html_files(grouped_html_files))
                 logging.info("Finished processing HTML files.")
 
-                # Display the selection options
+                # Group processed HTML files by URL link
                 html_files_metadata = st.session_state['processed_html_files_metadata']
-                if html_files_metadata:
-                    st.write("Select the processed HTML files:")
-                    selected_html_files = st.multiselect(
-                        "Select HTML files",
-                        options=list(html_files_metadata.keys()),
-                        format_func=lambda x: html_files_metadata[x]['source_name']
+                grouped_by_url = {}
+                for key, metadata in html_files_metadata.items():
+                    url = metadata['source_name']  # Assuming 'source_name' is the URL
+                    if url not in grouped_by_url:
+                        grouped_by_url[url] = []
+                    grouped_by_url[url].append(metadata)
+
+                st.session_state['grouped_html_files_by_url'] = grouped_by_url
+
+                # Display the selection options based on URL
+                if grouped_by_url:
+                    st.write("Select the processed HTML files based on URL:")
+                    selected_urls = st.multiselect(
+                        "Select URLs",
+                        options=list(grouped_by_url.keys()),
+                        default=[url_input] if url_input in grouped_by_url else []
                     )
+                    # Collect all chunks from the selected URLs
+                    selected_html_files = []
+                    for url in selected_urls:
+                        selected_html_files.extend(grouped_by_url[url])
+
                     st.session_state['selected_files'].extend(selected_html_files)
-                    st.write(f"Selected files: {selected_html_files}")
+                    st.write(f"Selected files: {selected_urls}")
                 else:
                     st.error("No processed HTML files found.")
 
+                # Update last processed URL
+                st.session_state['last_processed_url'] = url_input
 
 
-        @st.experimental_fragment
         def files_upload(self):
             # Handle file uploads and set processed_bool
             uploaded_files = st.file_uploader("📥 Limit < 2000MB", type=SUPPORTED_EXTENSIONS, accept_multiple_files=True)
+
+            # Generate a set of uploaded file names
+            current_uploaded_file_names = {file.name for file in uploaded_files} if uploaded_files else set()
+
+            # Check if there's no new file upload
+            if current_uploaded_file_names == st.session_state.get('last_uploaded_file_names', set()):
+                return  # No new uploads, return early
+    
+
             if uploaded_files:
                 start_time = time.time()
                 loop = asyncio.new_event_loop()
@@ -487,10 +546,11 @@ class FileUploader:
                 total_processed = sum(len(files) for files in st.session_state['uploaded_files'].values() if files)
                 st.success(f"Processed {total_processed} files. Processed File's Names: {format({file_info['file_short_name'] for files in st.session_state['uploaded_files'].values() for file_info in files.values()})}")
 
-
+            # Update last uploaded file names
+            st.session_state['last_uploaded_file_names'] = current_uploaded_file_names
 
         # File upload and selection section
-        with st.expander("📁 File Upload and Selection:"):
+        with st.expander("📁 File Upload and Selection:", expanded=True):
             url_upload()
             files_upload(self)
 
@@ -561,13 +621,19 @@ class FileUploader:
                     st.session_state['llama_index_node_documents'][unique_key] = Document(text=jointed_text_for_node)
 
             # Process HTML files
-            for key, file_metadata in st.session_state['processed_html_files_metadata'].items():
-                index = file_metadata['index']
-                source_name = file_metadata['source_name']
-                jointed_text_for_node = str(file_metadata)
-                unique_key = f"{source_name}_{index}"
-                if unique_key not in st.session_state['llama_index_node_documents']:
-                    st.session_state['llama_index_node_documents'][unique_key] = Document(text=jointed_text_for_node)
+            grouped_by_url = st.session_state.get('grouped_html_files_by_url', {})
+            for url, file_metadatas in grouped_by_url.items():
+                logging.debug(f"Processing URL: {url} with {len(file_metadatas)} files")
+                for file_metadata in file_metadatas:
+                    index = file_metadata['index']
+                    source_name = file_metadata['source_name']
+                    jointed_text_for_node = str(file_metadata)
+                    unique_key = f"{source_name}_{index}"
+                    logging.debug(f"Generated unique key: {unique_key} for file metadata: {file_metadata}")
+                    if unique_key not in st.session_state['llama_index_node_documents']:
+                        st.session_state['llama_index_node_documents'][unique_key] = Document(text=jointed_text_for_node)
+                        logging.info(f"Added document with key {unique_key} to llama_index_node_documents")
+
 
 
             # st.write(st.session_state['llama_index_node_documents'].items())
